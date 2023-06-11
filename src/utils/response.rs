@@ -3,7 +3,7 @@ use axum::response::IntoResponse;
 use strum::Display;
 
 #[derive(Display)]
-#[strum(serialize_all="SCREAMING_SNAKE_CASE")]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum RenaType {
     Sucess,
     Failed,
@@ -61,5 +61,15 @@ impl From<Rena<'_>> for RenaResult {
             RenaType::Sucess => Ok(val.to_string()),
             RenaType::Failed => Err(val.to_string()),
         }
+    }
+}
+
+pub trait ToRenaInner<T, A, E> {
+    fn unwrap_rena(self, error_args: A) -> Result<T, E>;
+}
+
+impl<'a, T, A, E: ToRena<'a, A>> ToRenaInner<T, A, Rena<'a>> for Result<T, E> {
+    fn unwrap_rena(self, error_args: A) -> Result<T, Rena<'a>> {
+        self.map_err(|e| e.to_rena(error_args))
     }
 }

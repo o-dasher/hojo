@@ -6,7 +6,7 @@ use sqlx::PgPool;
 
 use crate::utils::{
     payload::{Email, Password, Username},
-    response::{Rena, ToRena},
+    response::{Rena, ToRenaInner},
 };
 
 #[derive(Deserialize)]
@@ -24,15 +24,15 @@ pub async fn register_route(
     Extension(pool): Extension<PgPool>,
     Form(payload): Form<RegisterPayload>,
 ) -> Result<String, String> {
+    let email = Email::new(payload.email).into_inner();
+
     let username = Username::new(payload.username)
-        .map_err(|e| e.to_rena(()))?
+        .unwrap_rena(())?
         .into_inner();
 
     let password = Password::new(payload.password)
-        .map_err(|e| e.to_rena(()))?
+        .unwrap_rena(())?
         .into_inner();
-
-    let email = Email::new(payload.email).into_inner();
 
     let existing_user = sqlx::query!(
         "SELECT name, email FROM osu_user WHERE name=$1 or email=$2",
