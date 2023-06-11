@@ -1,0 +1,23 @@
+[package]
+name = "hojo"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = ["."]
+
+
+[dependencies]
+anyhow = "1.0.71"
+axum = { version = "0.6.18", features = ["tracing", "macros"] }
+axum-login = "0.5.0"
+bcrypt = "0.14.0"
+dotenvy = "0.15.7"
+envy = "0.4.2"
+nutype = "0.2.0"
+serde = { version = "1.0.164", features = ["derive"] }
+sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "time"] }
+strum = { version = "0.24.1", features = ["strum_macros", "derive"] }
+tokio = { version = "1.28.2", features = ["full"] }
+tracing = "0.1.37"
+tracing-subscriber = "0.3.17"
