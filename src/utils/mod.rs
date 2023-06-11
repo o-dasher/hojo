@@ -1,3 +1,1 @@
-pub mod response;
-pub mod payload;
-
+pub mod config;

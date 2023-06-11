@@ -9,6 +9,7 @@ pub enum RenaType {
     Failed,
 }
 
+pub type RenaResponse = Result<String, String>;
 pub type RenaArgs<'a> = Vec<&'a str>;
 
 pub struct Rena<'a>(RenaType, RenaArgs<'a>);

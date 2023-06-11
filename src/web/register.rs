@@ -4,9 +4,9 @@ use bcrypt::DEFAULT_COST;
 use serde::Deserialize;
 use sqlx::PgPool;
 
-use crate::utils::{
+use crate::requests::{
     payload::{Email, Password, Username},
-    response::{Rena, ToRenaInner},
+    response::{Rena, RenaResponse, ToRenaInner},
 };
 
 #[derive(Deserialize)]
@@ -23,7 +23,7 @@ fn generic_fail(err: impl Into<Error>) -> Rena<'static> {
 pub async fn register_route(
     Extension(pool): Extension<PgPool>,
     Form(payload): Form<RegisterPayload>,
-) -> Result<String, String> {
+) -> RenaResponse {
     let email = Email::new(payload.email).into_inner();
 
     let username = Username::new(payload.username)
