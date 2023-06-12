@@ -8,14 +8,14 @@ use std::net::SocketAddr;
 use axum::{routing::post, Extension, Router};
 use axum_login::{
     axum_sessions::{async_session::MemoryStore, SessionLayer},
-    AuthLayer, PostgresStore,
+    AuthLayer, PostgresStore, RequireAuthorizationLayer,
 };
-use models::auth::ShionUser;
+use models::user::HoUser;
 use rand::Rng;
 use sqlx::postgres::PgPoolOptions;
 
 use utils::config::Config;
-use web::{login::login_route, register::register_route};
+use web::{login::login_route, play::play_route, register::register_route};
 
 #[tokio::main]
 pub async fn main() {
@@ -37,10 +37,12 @@ pub async fn main() {
     let session_store = MemoryStore::new();
     let session_layer = SessionLayer::new(session_store, &secret).with_secure(config.is_production);
 
-    let user_store = PostgresStore::<ShionUser>::new(pool.clone());
+    let user_store = PostgresStore::<HoUser>::new(pool.clone());
     let auth_layer = AuthLayer::new(user_store, &secret);
 
     let app = Router::new()
+        .route("/play", post(play_route))
+        .route_layer(RequireAuthorizationLayer::<i64, HoUser>::login())
         .route("/register", post(register_route))
         .route("/login", post(login_route))
         .layer(auth_layer)

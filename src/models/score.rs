@@ -4,7 +4,7 @@ use rosu_v2::prelude::{GameMode, ScoreStatistics};
 use super::Timestamp;
 
 #[derive(Clone, Derivative, Default, sqlx::FromRow)]
-pub struct HojoScore {
+pub struct MeiScore {
     pub id: i64,
     pub beatmap_id: i64,
     pub user_id: i64,
@@ -21,8 +21,8 @@ pub struct HojoScore {
     pub date: Timestamp,
 }
 
-impl From<HojoScore> for ScoreStatistics {
-    fn from(val: HojoScore) -> Self {
+impl From<MeiScore> for ScoreStatistics {
+    fn from(val: MeiScore) -> Self {
         Self {
             count_geki: val.geki as u32,
             count_300: val.perfect as u32,

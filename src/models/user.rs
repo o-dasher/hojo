@@ -1,12 +1,32 @@
+use axum_login::{extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore};
 use bevy_reflect::Reflect;
 
-use super::{stats::HojoStats, Timestamp};
+use super::{stats::MeguriStats, Timestamp};
+
+// Meguri represents the full part
 
 #[derive(Default, sqlx::FromRow)]
-pub struct FullUser(MeiUser, GouUser);
+pub struct MeguriUser {
+    #[sqlx(flatten, default)]
+    pub mei: MeiUser,
+    #[sqlx(flatten, default)]
+    pub gou: GouUser,
+}
+
+// -- Mei represents the part that can be reflected and has relationship
 
 #[derive(Default, Reflect, sqlx::FromRow)]
 pub struct MeiUser {
+    #[sqlx(flatten, default)]
+    pub ho: HoUser,
+    #[sqlx(flatten, default)]
+    pub stats: MeguriStats,
+}
+
+// -- Ho represents the part that is core of the table
+
+#[derive(Default, Reflect, sqlx::FromRow, Clone)]
+pub struct HoUser {
     #[sqlx(default)]
     pub id: i64,
     #[sqlx(default)]
@@ -21,12 +41,21 @@ pub struct MeiUser {
     pub playing: Option<String>,
     #[sqlx(default)]
     pub play_count: i64,
-
-    #[sqlx(flatten, default)]
-    pub stats: HojoStats,
 }
 
-// -- Gou is the name for the part of the struct that can't implement reflection
+impl AuthUser<i64> for HoUser {
+    fn get_id(&self) -> i64 {
+        self.id
+    }
+
+    fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
+        SecretVec::new(self.password.clone().into())
+    }
+}
+
+pub type ShionContext = AuthContext<i64, HoUser, PostgresStore<HoUser>>;
+
+// -- Gou represents the part that can't be reflected
 
 #[derive(Default, sqlx::FromRow)]
 pub struct GouUser {

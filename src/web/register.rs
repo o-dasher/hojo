@@ -35,7 +35,7 @@ pub async fn register_route(
         .into_inner();
 
     let existing_user = sqlx::query!(
-        "SELECT name, email FROM osu_user WHERE name=$1 or email=$2",
+        "SELECT name, email FROM users WHERE name=$1 or email=$2",
         username,
         email
     )
@@ -59,7 +59,7 @@ pub async fn register_route(
     sqlx::query!(
         "
         WITH created_user AS (
-            INSERT INTO osu_user (name, email, password)
+            INSERT INTO users (name, email, password)
             VALUES ($1, $2, $3)
             RETURNING id
         )

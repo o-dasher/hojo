@@ -1,9 +1,11 @@
 use bevy_reflect::Reflect;
 
+use super::Accuracy;
+
 #[derive(sqlx::FromRow, Default, Reflect)]
-pub struct HojoStats {
-    #[sqlx(default)]
-    pub accuracy: f64,
+pub struct MeguriStats {
+    #[sqlx(flatten, default)]
+    pub accuracy: Accuracy,
 
     #[sqlx(default)]
     pub pp: f64,

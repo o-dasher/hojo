@@ -6,13 +6,10 @@ use sqlx::PgPool;
 use tracing::info;
 
 use crate::{
-    models::{
-        auth::{ShionContext, ShionUser},
-        user::MeiUser,
-    },
+    models::user::{MeiUser, ShionContext, HoUser},
     requests::{
         payload::{Password, Username},
-        response::{Rena, RenaResponse, ToRenaInner},
+        response::{Rena, RenaResponse},
     },
     utils::config::Config,
 };
@@ -24,7 +21,15 @@ pub struct LoginPayload {
 }
 
 pub fn generic_error(err: impl Into<Error>) -> Rena<'static> {
-    Rena::no(err, vec!["Failed to submit score"])
+    Rena::no(err, vec!["Failed to login"])
+}
+
+pub fn invalid_user(err: impl Into<Error>) -> Rena<'static> {
+    Rena::no(err, vec!["User not found"])
+}
+
+pub fn invalid_password(err: impl Into<Error>) -> Rena<'static> {
+    Rena::no(err, vec!["Password does not match"])
 }
 
 pub async fn login_route(
@@ -33,12 +38,15 @@ pub async fn login_route(
     Extension(pool): Extension<PgPool>,
     Form(payload): Form<LoginPayload>,
 ) -> RenaResponse {
+    // Same as below
     let username = Username::new(payload.username)
-        .unwrap_rena(())?
+        .map_err(invalid_user)?
         .into_inner();
 
+    // We must not give out the reason why the password wasn't accepted.
+    // so we map it to a generic "Password does not match" error
     let password = Password::new(payload.password)
-        .unwrap_rena(())?
+        .map_err(invalid_password)?
         .into_inner();
 
     let metric_key = config.global_metric.to_string();
@@ -48,7 +56,7 @@ pub async fn login_route(
         SELECT
         u.id, u.name, u.password, RANK() OVER (ORDER BY $1 DESC) as rank,
         s.play_count, s.pp, s.ranked_score, s.total_score, s.accuracy
-        FROM osu_user u
+        FROM users u
         JOIN osu_stats s ON u.id = s.user_id
         WHERE u.name = $2
         ",
@@ -57,28 +65,28 @@ pub async fn login_route(
     .bind(username)
     .fetch_one(&pool)
     .await
-    .map_err(|e| Rena::no(e, vec!["User not found"]))?;
+    .map_err(invalid_user)?;
 
-    bcrypt::verify(password, &login_user.password)
-        .map_err(|e| Rena::no(e, vec!["Password does not match"]))?;
+    bcrypt::verify(password, &login_user.ho.password).map_err(invalid_password)?;
 
-    auth.login(&ShionUser::new(login_user.id, &login_user.password))
+    auth.login(&login_user.ho)
         .await
         .map_err(|e| Rena::no(anyhow::anyhow!("{}", e), vec!["Could not login"]))?;
 
     info!("{}", metric_key);
 
-    let metric: &i64 = login_user.stats
+    let metric: &i64 = login_user
+        .stats
         .get_field(&metric_key)
         .ok_or(Rena::unchecked_fail(vec!["Failed to get user metric"]))?;
 
     Rena::ok(vec![
-        &login_user.id.to_string(),
+        &login_user.ho.id.to_string(),
         Default::default(),
-        &login_user.rank.to_string(),
+        &login_user.ho.rank.to_string(),
         &metric.to_string(),
-        &login_user.stats.accuracy.to_string(),
-        &login_user.name,
+        &login_user.stats.accuracy.as_droid().to_string(),
+        &login_user.ho.name,
         &String::default(),
     ])
     .into()
